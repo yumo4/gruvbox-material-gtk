@@ -1,74 +1,45 @@
 {
-  description = "Gruvbox Material GTK theme + icons packaged for Nix/Home Manager";
+  description = "Gruvbox Material GTK Theme and Icons";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
   outputs = {
     self,
     nixpkgs,
-    flake-utils,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        pkgs = import nixpkgs {inherit system;};
+  }: let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+  in {
+    packages.${system} = {
+      gruvbox-material-gtk = pkgs.stdenv.mkDerivation {
+        pname = "gruvbox-material-gtk";
+        version = "unstable";
 
-        # Installs GTK themes from ./themes into $out/share/themes
-        gruvbox-gtk-theme = pkgs.stdenvNoCC.mkDerivation {
-          pname = "gruvbox-material-gtk-theme";
-          version = "git-${self.shortRev or "dirty"}";
+        src = ./.;
 
-          src = self;
+        dontBuild = true;
 
-          dontBuild = true;
+        installPhase = ''
+          runHook preInstall
 
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/share/themes
-            cp -r themes/* $out/share/themes/Gruvbox-Material-Dark
-            runHook postInstall
-          '';
+          mkdir -p $out/share/themes
+          cp -r themes/* $out/share/themes/
 
-          meta = with pkgs.lib; {
-            description = "Gruvbox Material GTK theme";
-            license = licenses.mit;
-            platforms = platforms.all;
-          };
+          mkdir -p $out/share/icons
+          cp -r icons/* $out/share/icons/
+
+          runHook postInstall
+        '';
+
+        meta = {
+          description = "Gruvbox Material theme for GTK and icons";
+          license = pkgs.lib.licenses.mit;
         };
+      };
 
-        # Installs icons from ./icons into $out/share/icons
-        gruvbox-icons = pkgs.stdenvNoCC.mkDerivation {
-          pname = "gruvbox-material-icons";
-          version = "git-${self.shortRev or "dirty"}";
-
-          src = self;
-
-          dontBuild = true;
-
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/share/icons
-            cp -r icons/* $out/share/icons/
-            runHook postInstall
-          '';
-
-          meta = with pkgs.lib; {
-            description = "Gruvbox Material icon theme";
-            license = licenses.mit;
-            platforms = platforms.all;
-          };
-        };
-      in {
-        packages = {
-          gtk-theme = gruvbox-gtk-theme;
-          icons = gruvbox-icons;
-
-          # optional convenience default
-          default = gruvbox-gtk-theme;
-        };
-      }
-    );
+      default = self.packages.${system}.gruvbox-material-gtk;
+    };
+  };
 }
